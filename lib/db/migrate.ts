@@ -22,6 +22,11 @@ const runMigrate = async () => {
   const end = Date.now();
 
   console.log('✅ Migrations completed in', end - start, 'ms');
+  
+  // Log information about the migration
+  console.log('✅ Added new tables: DocumentSection, DocumentAnnotation');
+  console.log('✅ Updated Document table with legal document fields');
+  
   process.exit(0);
 };
 

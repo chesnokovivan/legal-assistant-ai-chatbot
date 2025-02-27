@@ -1,0 +1,170 @@
+---
+description: Follow these rules when working on the backend
+globs: *.ts, *.tsx, *.json, *.mjs, *.env, *.env.example, *.env.local
+alwaysApply: false
+---
+### Backend Rules
+
+Follow these rules when working on the backend.
+
+It uses Postgres, Vercel Postgres (powered by Neon), Drizzle ORM, and Server Actions.
+
+#### General Rules
+
+- Never generate migrations. You do not have to do anything in the `lib/db/migrations` folder including migrations and metadata. Ignore it.
+- Use the existing database connection in `lib/db/queries.ts` for all database operations.
+
+#### Organization
+
+- Server actions should be organized by feature area in the `app` directory (e.g., `app/(chat)/actions.ts`, `app/(auth)/actions.ts`)
+- Database-related functions should be in `lib/db/queries.ts`
+
+#### Schemas
+
+- When importing schemas, use `@/lib/db/schema`
+- All schemas should be defined in `lib/db/schema.ts`
+- Follow the existing schema naming convention (camelCase for table names, PascalCase for type names)
+- Always include `createdAt` timestamp fields in all tables
+- Use `uuid` type for ID fields with `.defaultRandom().primaryKey()`
+- For legal document-related tables, include appropriate metadata fields such as:
+  - `documentType` (e.g., contract, agreement, legal brief)
+  - `jurisdiction` (relevant legal jurisdiction)
+  - `status` (e.g., draft, review, final)
+  - `confidentiality` (e.g., public, private, confidential)
+
+- Use enums for columns that have a limited set of possible values such as:
+
+```ts
+import { pgEnum } from 'drizzle-orm/pg-core';
+
+export const documentTypeEnum = pgEnum('documentType', ['contract', 'agreement', 'brief', 'memo', 'letter']);
+
+documentType: documentTypeEnum('documentType').notNull().default('contract')
+```
+
+Example of a legal document schema:
+
+```ts
+import { pgTable, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
+import { documentTypeEnum } from './enums';
+
+export const legalDocument = pgTable('LegalDocument', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  userId: uuid('userId')
+    .notNull()
+    .references(() => user.id),
+  title: text('title').notNull(),
+  content: text('content'),
+  documentType: documentTypeEnum('documentType').notNull().default('contract'),
+  jurisdiction: varchar('jurisdiction', { length: 100 }),
+  status: varchar('status', { enum: ['draft', 'review', 'final'] })
+    .notNull()
+    .default('draft'),
+  confidentiality: varchar('confidentiality', { enum: ['public', 'private', 'confidential'] })
+    .notNull()
+    .default('private'),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+  updatedAt: timestamp('updatedAt')
+    .notNull()
+    .defaultNow()
+});
+
+export type LegalDocument = InferSelectModel<typeof legalDocument>;
+```
+
+#### Server Actions
+
+- When importing actions, use `@/app/(feature)/actions`
+- Follow the existing pattern of defining action state interfaces and action functions
+- Use Zod for input validation in server actions
+- Return appropriate status and error messages
+- For legal-specific actions, include proper error handling for legal document validation
+- Include appropriate logging for legal document operations for audit purposes
+
+Example of a legal document action:
+
+```ts
+'use server';
+
+import { z } from 'zod';
+import { createLegalDocument, getLegalDocumentsByUserId } from '@/lib/db/queries';
+
+const legalDocumentSchema = z.object({
+  title: z.string().min(1),
+  content: z.string().optional(),
+  documentType: z.enum(['contract', 'agreement', 'brief', 'memo', 'letter']),
+  jurisdiction: z.string().optional(),
+  status: z.enum(['draft', 'review', 'final']).default('draft'),
+  confidentiality: z.enum(['public', 'private', 'confidential']).default('private'),
+});
+
+export interface LegalDocumentActionState {
+  status: 'idle' | 'in_progress' | 'success' | 'failed' | 'invalid_data';
+  message?: string;
+  data?: any;
+}
+
+export const createLegalDocumentAction = async (
+  _: LegalDocumentActionState,
+  formData: FormData,
+): Promise<LegalDocumentActionState> => {
+  try {
+    const validatedData = legalDocumentSchema.parse({
+      title: formData.get('title'),
+      content: formData.get('content'),
+      documentType: formData.get('documentType'),
+      jurisdiction: formData.get('jurisdiction'),
+      status: formData.get('status'),
+      confidentiality: formData.get('confidentiality'),
+    });
+
+    const document = await createLegalDocument({
+      ...validatedData,
+      userId: 'user-id', // Replace with actual user ID from auth context
+    });
+
+    return { 
+      status: 'success',
+      message: 'Legal document created successfully',
+      data: document
+    };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return { 
+        status: 'invalid_data',
+        message: 'Invalid document data provided'
+      };
+    }
+
+    console.error('Error creating legal document:', error);
+    return { 
+      status: 'failed',
+      message: 'Failed to create legal document'
+    };
+  }
+};
+```
+
+#### Legal-Specific Database Considerations
+
+- Include proper indexing for legal document search (e.g., full-text search on document content)
+- Implement versioning for legal documents to track changes
+- Consider implementing document relationships (e.g., parent-child relationships between documents)
+- Add support for document annotations and comments
+- Implement proper access control for sensitive legal documents
+
+#### Date Handling
+
+- For columns defined as timestamp, always convert JavaScript `Date` objects to ISO strings using `.toISOString()` before performing operations
+- Store all dates in UTC format
+- When displaying dates to users, convert to the appropriate timezone
+
+#### Security Considerations
+
+- Implement proper input validation for all user inputs
+- Use parameterized queries to prevent SQL injection
+- Implement proper access control for legal documents
+- Consider encryption for sensitive legal document content
+- Implement audit logging for all document operations
+
+These modified rules align with your legal assistant AI chatbot project while maintaining the structure and patterns already established in your codebase.

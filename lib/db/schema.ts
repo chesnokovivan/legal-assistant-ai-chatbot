@@ -9,6 +9,7 @@ import {
   primaryKey,
   foreignKey,
   boolean,
+  integer,
 } from 'drizzle-orm/pg-core';
 
 export const user = pgTable('User', {
@@ -72,12 +73,20 @@ export const document = pgTable(
     createdAt: timestamp('createdAt').notNull(),
     title: text('title').notNull(),
     content: text('content'),
-    kind: varchar('text', { enum: ['text', 'code', 'image', 'sheet'] })
+    kind: varchar('kind', { enum: ['text', 'code', 'image', 'sheet', 'legal'] })
       .notNull()
       .default('text'),
     userId: uuid('userId')
       .notNull()
       .references(() => user.id),
+    fileName: varchar('fileName', { length: 255 }),
+    fileType: varchar('fileType', { enum: ['pdf', 'docx', 'txt', 'md'] }),
+    fileSize: integer('fileSize'),
+    blobUrl: text('blobUrl'),
+    pageCount: integer('pageCount'),
+    wordCount: integer('wordCount'),
+    lastModified: timestamp('lastModified'),
+    isAnalyzed: boolean('isAnalyzed').default(false),
   },
   (table) => {
     return {
@@ -87,6 +96,68 @@ export const document = pgTable(
 );
 
 export type Document = InferSelectModel<typeof document>;
+
+export const documentSection = pgTable(
+  'DocumentSection',
+  {
+    id: uuid('id').notNull().defaultRandom(),
+    documentId: uuid('documentId').notNull(),
+    documentCreatedAt: timestamp('documentCreatedAt').notNull(),
+    title: text('title').notNull(),
+    level: integer('level').notNull(),
+    content: text('content').notNull(),
+    startIndex: integer('startIndex').notNull(),
+    endIndex: integer('endIndex').notNull(),
+    parentId: uuid('parentId'),
+    createdAt: timestamp('createdAt').notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.id] }),
+    documentRef: foreignKey({
+      columns: [table.documentId, table.documentCreatedAt],
+      foreignColumns: [document.id, document.createdAt],
+    }),
+    parentRef: foreignKey({
+      columns: [table.parentId],
+      foreignColumns: [table.id],
+    }),
+  }),
+);
+
+export type DocumentSection = InferSelectModel<typeof documentSection>;
+
+export const documentAnnotation = pgTable(
+  'DocumentAnnotation',
+  {
+    id: uuid('id').notNull().defaultRandom(),
+    documentId: uuid('documentId').notNull(),
+    documentCreatedAt: timestamp('documentCreatedAt').notNull(),
+    startIndex: integer('startIndex').notNull(),
+    endIndex: integer('endIndex').notNull(),
+    text: text('text').notNull(),
+    type: varchar('type', { 
+      enum: ['issue', 'highlight', 'comment', 'suggestion'] 
+    }).notNull(),
+    comment: text('comment'),
+    severity: varchar('severity', { 
+      enum: ['low', 'medium', 'high', 'critical'] 
+    }),
+    createdAt: timestamp('createdAt').notNull(),
+    userId: uuid('userId')
+      .notNull()
+      .references(() => user.id),
+    isResolved: boolean('isResolved').default(false),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.id] }),
+    documentRef: foreignKey({
+      columns: [table.documentId, table.documentCreatedAt],
+      foreignColumns: [document.id, document.createdAt],
+    }),
+  }),
+);
+
+export type DocumentAnnotation = InferSelectModel<typeof documentAnnotation>;
 
 export const suggestion = pgTable(
   'Suggestion',

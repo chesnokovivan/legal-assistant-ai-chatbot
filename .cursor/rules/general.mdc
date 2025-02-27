@@ -1,0 +1,116 @@
+---
+description: Follow these rules for all requests
+globs: 
+alwaysApply: true
+---
+# Project Instructions
+
+Use technical specification and implementation planning as you build the app.
+
+Write the complete code for every step. Do not get lazy.
+
+Your goal is to completely finish whatever I ask for.
+
+## Overview
+
+This is a web AI chat bot app template modified to the legal assistance use case.
+
+## App template features
+
+— Next.js App Router
+    - Advanced routing for seamless navigation and performance
+    - React Server Components (RSCs) and Server Actions for server-side rendering and increased         performance
+— AI SDK
+    - Unified API for generating text, structured objects, and tool calls with LLMs
+    - Hooks for building dynamic chat and generative user interfaces
+    - Supports OpenAI (default), Anthropic, Cohere, and other model providers
+— shadcn/ui
+    - Styling with Tailwind CSS
+    - Component primitives from Radix UI for accessibility and flexibility
+— Data Persistence
+    - Vercel Postgres powered by Neon for saving chat history and user data
+    - Vercel Blob for efficient file storage
+— NextAuth.js
+    - Simple and secure authentication
+
+## Project Structure
+
+- `app` - Next.js application routes and API handlers
+  - `(chat)` - Main application routes
+    - `api` - API endpoints
+      - `chat` - Chat interaction endpoints
+      - `document` - Document processing endpoints
+      - `files` - File upload and management endpoints
+    - `chat` - Chat interface routes
+  - `layout.tsx` - Root layout component
+  - `globals.css` - Global styles
+- `components` - Reusable UI components
+  - `ui` - Basic UI components
+  - `document-viewer` - Document viewing components
+  - `document-analysis` - Document analysis components
+  - `chat` - Chat interface components
+  - `legal-tools` - Legal-specific tool components
+- `lib` - Utility functions and services
+  - `ai` - AI integration with Anthropic Claude
+    - `models.ts` - Model configuration (Anthropic Claude only)
+    - `prompts.ts` - System prompts for different features
+    - `tools` - AI tools for document processing
+  - `db` - Database queries and schema
+  - `document-processing` - Document processing utilities
+    - `analysis.ts` - Document structure analysis
+    - `extraction.ts` - Information extraction
+    - `highlighting.ts` - Problem area highlighting
+  - `utils.ts` - General utility functions
+- `public` - Static assets
+
+## Rules
+
+Follow these rules when building the app.
+
+### General Rules
+
+- Use `@` to import anything from the app unless otherwise specified
+- Use kebab case for all files and folders unless otherwise specified
+- Don't update shadcn components unless otherwise specified
+
+#### Env Rules
+
+- If you update environment variables, update the `.env.example` file
+- All environment variables should go in `.env.local`
+- Do not expose environment variables to the frontend
+- Use `NEXT_PUBLIC_` prefix for environment variables that need to be accessed from the frontend
+- You may import environment variables in server actions and components by using `process.env.VARIABLE_NAME`
+
+#### LLM Names rules
+- When writing code for API calls for different LLM providers, here are the correct names of the LLMs;
+  - OpenAI provider: 'gpt-4o', 'gpt-4o-mini', 'gpt-4o-2024-11-20', 'o3-mini-2025-01-31'
+  - Anthropic provider: 'claude-3-7-sonnet-20250219', 'claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022'
+
+#### Type Rules
+
+Follow these rules when working with types.
+
+- When importing types, use `@/types`
+- Name files like `example-types.ts`
+- All types should go in `types`
+- Make sure to export the types in `types/index.ts`
+- Prefer interfaces over type aliases
+- If referring to db types, use `@/db/schema` such as `SelectTodo` from `todos-schema.ts`
+
+An example of a type:
+
+`types/actions-types.ts`
+
+```ts
+export type ActionState<T> =
+  | { isSuccess: true; message: string; data: T }
+  | { isSuccess: false; message: string; data?: never }
+```
+
+And exporting it:
+
+`types/index.ts`
+
+```ts
+export * from "./actions-types"
+```

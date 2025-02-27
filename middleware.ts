@@ -1,9 +1,17 @@
-import NextAuth from 'next-auth';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-import { authConfig } from '@/app/(auth)/auth.config';
+export function middleware(request: NextRequest) {
+  // Configure for larger document uploads
+  if (request.nextUrl.pathname.startsWith('/api/document/upload')) {
+    const response = NextResponse.next();
+    response.headers.set('x-middleware-cache', 'no-cache');
+    return response;
+  }
 
-export default NextAuth(authConfig).auth;
+  return NextResponse.next();
+}
 
 export const config = {
-  matcher: ['/', '/:id', '/api/:path*', '/login', '/register'],
+  matcher: ['/api/:path*'],
 };
